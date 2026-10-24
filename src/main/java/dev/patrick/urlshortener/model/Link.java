@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor 
 @NoArgsConstructor 
-public class model{
+public class Link{
     @Id 
     @GeneratedValue(strategy = GenerationType.IDENTITY) 
     private BigDecimal id;
