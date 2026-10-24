@@ -67,7 +67,7 @@ public class LinkServiceImpl implements LinkService {
 
     @Override
     public void validateLongUrl(String longUrl) {
-        if(longUrl == null || longUrl.length() < MAX_URL_LENGTH){
+        if(longUrl == null || longUrl.length() > MAX_URL_LENGTH){
             throw new InvalidLinkException("LongUrl must be at most " + MAX_URL_LENGTH + " characters long.");
         }
         URI uri;
