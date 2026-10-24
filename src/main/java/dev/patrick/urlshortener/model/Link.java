@@ -1,6 +1,5 @@
 package  dev.patrick.urlshortener.model;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -21,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class Link {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private BigDecimal id;
+    private Long id;
 
     @Column(nullable = false, unique = true, length = 50)
     private String alias;
