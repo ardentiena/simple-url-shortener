@@ -1,0 +1,86 @@
+patrick@PatrickKocu:~/personal-projects/urlShortener$ benchmark/run-benchmark.sh baseline-no-cache-run4
+
+         /\      Grafana   /‾‾/
+    /\  /  \     |\  __   /  /
+   /  \/    \    | |/ /  /   ‾‾\
+  /          \   |   (  |  (‾)  |
+ / __________ \  |_|\_\  \_____/
+
+
+     execution: local
+        script: benchmark/redirect-load-test.js
+        output: -
+
+     scenarios: (100.00%) 2 scenarios, 100 max VUs, 2m0s max duration (incl. graceful stop):
+              * warmup: 50 looping VUs for 30s (exec: requestRedirect, gracefulStop: 30s)
+              * measured: 50 looping VUs for 1m0s (exec: requestRedirect, startTime: 30s, gracefulStop: 30s)
+
+WARN[0002] The test has generated metrics with 101294 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
+WARN[0004] The test has generated metrics with 200330 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
+WARN[0008] The test has generated metrics with 400427 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
+WARN[0029] The test has generated metrics with 800063 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
+WARN[0059] The test has generated metrics with 1600052 unique time series, which is higher than the suggested limit of 100000 and could cause high memory usage. Consider not using high-cardinality values like unique IDs as metric tags or, if you need them in the URL, use the name metric tag or URL grouping. See https://grafana.com/docs/k6/latest/using-k6/tags-and-groups/ for details.  component=metrics-engine-ingester
+
+
+  █ THRESHOLDS
+
+    checks{scenario:measured}
+    ✓ 'rate>0.99' rate=100.00%
+
+    http_req_duration{scenario:measured}
+    ✓ 'p(95)<5000' p(95)=14.75ms
+
+    http_req_failed{scenario:measured}
+    ✓ 'rate<0.01' rate=0.00%
+
+    http_reqs{scenario:measured}
+    ✓ 'count>0' count=312900
+
+
+  █ TOTAL RESULTS
+
+    checks_total.......: 1082616 3522.791426/s
+    checks_succeeded...: 100.00% 1082616 out of 1082616
+    checks_failed......: 0.00%   0 out of 1082616
+
+    ✓ status is 302
+    ✓ location header is present
+
+    HTTP
+    http_req_duration..............: avg=10.71ms min=669.06µs med=5.41ms p(90)=11.84ms p(95)=14.39ms p(99)=21.28ms max=3m49s
+      { expected_response:true }...: avg=10.71ms min=669.06µs med=5.41ms p(90)=11.84ms p(95)=14.39ms p(99)=21.28ms max=3m49s
+      { scenario:measured }........: avg=13.87ms min=669.06µs med=5.58ms p(90)=12.1ms  p(95)=14.75ms p(99)=21.98ms max=3m49s
+    http_req_failed................: 0.00%  0 out of 541333
+      { scenario:measured }........: 0.00%  0 out of 312900
+    http_reqs......................: 541333 1761.477062/s
+      { scenario:measured }........: 312900 1018.164739/s
+
+    EXECUTION
+    iteration_duration.............: avg=8.86ms  min=744.34µs med=5.6ms  p(90)=12.11ms p(95)=14.73ms p(99)=21.8ms  max=3m49s
+    iterations.....................: 541303 1761.379443/s
+    vus............................: 43     min=43          max=50
+    vus_max........................: 100    min=100         max=100
+
+    NETWORK
+    data_received..................: 68 MB  220 kB/s
+    data_sent......................: 44 MB  143 kB/s
+
+
+
+
+running (5m07.3s), 000/100 VUs, 541298 complete and 50 interrupted iterations
+warmup   ✓ [======================================] 50 VUs  30s
+measured ✓ [======================================] 50 VUs  1m0s
+Heartbeat gaps longer than 2 seconds (no lines below means no freeze):
+gap of 163.7 s before line 146
+gap of 22.3 s before line 147
+gap of 36.6 s before line 148
+gap of 5.7 s before line 149
+gap of 3.1 s before line 150
+gap of 3.2 s before line 164
+gap of 9.4 s before line 165
+gap of 23.9 s before line 166
+gap of 4.1 s before line 167
+gap of 20.8 s before line 168
+gap of 5.5 s before line 169
+gap of 2.4 s before line 170
