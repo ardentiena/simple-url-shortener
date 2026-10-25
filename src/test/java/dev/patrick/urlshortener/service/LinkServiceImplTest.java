@@ -1,6 +1,6 @@
 package dev.patrick.urlshortener.service;
 
-
+import dev.patrick.urlshortener.component.LinkCache;
 import dev.patrick.urlshortener.model.Link;
 import dev.patrick.urlshortener.repository.LinkRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,19 +16,20 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class LinkServiceImplTest {
     @Mock
     LinkRepository linkRepository;
+    @Mock
+    LinkCache linkCache;
 
     private LinkServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new LinkServiceImpl(linkRepository, "localhost");
+        service = new LinkServiceImpl(linkRepository, linkCache, "localhost");
     }
 
     @Test
@@ -86,6 +87,34 @@ class LinkServiceImplTest {
 
         assertThrows(LinkServiceImpl.AliasAlreadyExistException.class,
                 () -> service.createLink("spring", "https://spring.io"));
+    }
+
+    @Test
+    void getLongUrlByAlias_returnsCachedUrlWithoutQueryingDatabase(){
+        when(linkCache.findLongUrl("spring")).thenReturn(Optional.of("https://spring.io"));
+        String longUrl = service.getLongUrlByAlias("spring");
+        assertEquals("https://spring.io", longUrl);
+        verifyNoInteractions(linkRepository);
+    }
+
+    @Test
+    void getLongUrlByAlias_storesUrlInCacheAfterDatabaseHit(){
+        Instant expiredAt = Instant.now().plus(1, ChronoUnit.DAYS);
+        Link link = new Link("spring", "https://spring.io");
+        link.setExpiredAt(expiredAt);
+        when(linkRepository.findByAlias("spring")).thenReturn(Optional.of(link));
+        service.getLongUrlByAlias("spring");
+        verify(linkCache).saveLongUrl("spring", "https://spring.io", expiredAt);
+    }
+
+    @Test
+    void getLongUrlByAlias_doesNotCacheExpiredLink(){
+        Link link = new Link("old123", "https://spring.io");
+        link.setExpiredAt(Instant.now().minus(1, ChronoUnit.DAYS));
+        when(linkRepository.findByAlias("old123")).thenReturn(Optional.of(link));
+
+        assertThrows(LinkServiceImpl.LinkExpiredException.class, () -> service.getLongUrlByAlias("old123"));
+        verify(linkCache, never()).saveLongUrl(any(), any(), any());
     }
 
     @Test

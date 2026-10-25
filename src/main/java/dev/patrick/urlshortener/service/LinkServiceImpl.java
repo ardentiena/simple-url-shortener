@@ -1,5 +1,6 @@
 package dev.patrick.urlshortener.service;
 
+import dev.patrick.urlshortener.component.LinkCache;
 import dev.patrick.urlshortener.model.Link;
 import dev.patrick.urlshortener.repository.LinkRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -21,10 +23,12 @@ public class LinkServiceImpl implements LinkService {
     private static final int MAX_URL_LENGTH = 2048;
 
     private final LinkRepository linkRepository;
+    private final LinkCache linkCache;
     private final String ownHost;
 
-    public LinkServiceImpl(LinkRepository linkRepository, @Value("${app.host}") String ownHost) {
+    public LinkServiceImpl(LinkRepository linkRepository, LinkCache linkCache, @Value("${app.host}") String ownHost) {
         this.linkRepository = linkRepository;
+        this.linkCache = linkCache;
         this.ownHost = ownHost.toLowerCase(Locale.ROOT);
     }
 
@@ -45,13 +49,19 @@ public class LinkServiceImpl implements LinkService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public String getLongUrlByAlias(String alias) {
+        Optional<String> cachedLongUrl = linkCache.findLongUrl(alias);
+        if(cachedLongUrl.isPresent()){
+            return cachedLongUrl.get();
+        }
+
         Link link = linkRepository.findByAlias(alias)
                 .orElseThrow(() -> new LinkNotFoundException(alias));
         if(link.getExpiredAt().isBefore(Instant.now())){
             throw new LinkExpiredException(alias);
         }
+
+        linkCache.saveLongUrl(alias, link.getLongUrl(),  link.getExpiredAt());
         return link.getLongUrl();
     }
 
