@@ -1,6 +1,7 @@
 package dev.patrick.urlshortener.service;
 
 import dev.patrick.urlshortener.component.LinkCache;
+import dev.patrick.urlshortener.component.SafeBrowsingClient;
 import dev.patrick.urlshortener.model.Link;
 import dev.patrick.urlshortener.repository.LinkRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,15 +26,20 @@ public class LinkServiceImpl implements LinkService {
     private final LinkRepository linkRepository;
     private final LinkCache linkCache;
     private final String ownHost;
+    private final SafeBrowsingClient safeBrowsingClient;
 
-    public LinkServiceImpl(LinkRepository linkRepository, LinkCache linkCache, @Value("${app.host}") String ownHost) {
+    public LinkServiceImpl(
+            LinkRepository linkRepository,
+            LinkCache linkCache,
+            SafeBrowsingClient safeBrowsingClient,
+            @Value("${app.host}") String ownHost) {
         this.linkRepository = linkRepository;
         this.linkCache = linkCache;
+        this.safeBrowsingClient = safeBrowsingClient;
         this.ownHost = ownHost.toLowerCase(Locale.ROOT);
     }
 
     @Override
-    @Transactional
     public Link createLink(String alias, String longUrl) {
         validateAlias(alias);
         validateLongUrl(longUrl);
@@ -41,9 +47,12 @@ public class LinkServiceImpl implements LinkService {
         if(linkRepository.existsByAlias(alias)){
             throw new AliasAlreadyExistException(alias);
         }
+        if(!safeBrowsingClient.isUrlSafe(longUrl)){
+            throw new InvalidLinkException("This URL is flagged as unsafe by Google Safe Browsing.");
+        }
         try {
             return linkRepository.saveAndFlush(new Link(alias, longUrl));
-        }catch (DataIntegrityViolationException e){
+        }catch (DataIntegrityViolationException duplicateAlias){
             throw new AliasAlreadyExistException(alias);
         }
     }

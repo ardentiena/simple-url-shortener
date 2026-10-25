@@ -1,7 +1,8 @@
 package dev.patrick.urlshortener.service;
 
-import dev.patrick.urlshortener.component.LinkCache;
+import dev.patrick.urlshortener.component.*;
 import dev.patrick.urlshortener.model.Link;
+import dev.patrick.urlshortener.service.LinkServiceImpl.*;
 import dev.patrick.urlshortener.repository.LinkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,16 +25,19 @@ class LinkServiceImplTest {
     LinkRepository linkRepository;
     @Mock
     LinkCache linkCache;
+    @Mock
+    private SafeBrowsingClient safeBrowsingClient;
 
     private LinkServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new LinkServiceImpl(linkRepository, linkCache, "localhost");
+        service = new LinkServiceImpl(linkRepository, linkCache, safeBrowsingClient, "localhost");
     }
 
     @Test
     void createLink_saveValidLink() {
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
         when(linkRepository.existsByAlias("spring")).thenReturn(false);
         when(linkRepository.saveAndFlush(any(Link.class))).thenAnswer(invoc -> invoc.getArgument(0));
 
@@ -87,6 +91,36 @@ class LinkServiceImplTest {
 
         assertThrows(LinkServiceImpl.AliasAlreadyExistException.class,
                 () -> service.createLink("spring", "https://spring.io"));
+    }
+
+    @Test
+    void createLink_rejectsUrlFlaggedByGoogle() {
+        when(linkRepository.existsByAlias("danger")).thenReturn(false);
+        when(safeBrowsingClient.isUrlSafe("https://malware.example/payload")).thenReturn(false);
+
+        assertThrows(InvalidLinkException.class,
+                () -> service.createLink("danger", "https://malware.example/payload"));
+        verify(linkRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createLink_doesNotCallSafeBrowsingForDuplicateAlias() {
+        when(linkRepository.existsByAlias("spring")).thenReturn(true);
+
+        assertThrows(LinkServiceImpl.AliasAlreadyExistException.class,
+                () -> service.createLink("spring", "https://spring.io"));
+        verifyNoInteractions(safeBrowsingClient);
+    }
+
+    @Test
+    void createLink_propagatesSafeBrowsingOutage() {
+        when(linkRepository.existsByAlias("spring")).thenReturn(false);
+        when(safeBrowsingClient.isUrlSafe("https://spring.io"))
+                .thenThrow(new SafeBrowsingUnavailableException("timeout"));
+
+        assertThrows(SafeBrowsingUnavailableException.class,
+                () -> service.createLink("spring", "https://spring.io"));
+        verify(linkRepository, never()).saveAndFlush(any());
     }
 
     @Test

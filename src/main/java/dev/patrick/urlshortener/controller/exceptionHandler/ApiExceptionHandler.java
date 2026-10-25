@@ -1,5 +1,6 @@
 package dev.patrick.urlshortener.controller.exceptionHandler;
 
+import dev.patrick.urlshortener.component.SafeBrowsingUnavailableException;
 import dev.patrick.urlshortener.service.LinkServiceImpl.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -26,5 +27,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(LinkExpiredException.class)
     public ProblemDetail handleLinkExpired(LinkExpiredException e){
         return ProblemDetail.forStatusAndDetail(HttpStatus.GONE, e.getMessage());
+    }
+
+    @ExceptionHandler(SafeBrowsingUnavailableException.class)
+    public ProblemDetail handleSafeBrowsingUnavailable(SafeBrowsingUnavailableException e){
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Link safety checkis temporarily unavailable. please try again later.");
     }
 }
