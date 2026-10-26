@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class safeBrowsingClientTest {
+public class SafeBrowsingClientTest {
     private HttpServer fakeGoogleServer;
     private String fakeEndpoint;
     private final AtomicInteger receivedRequestCount = new AtomicInteger();

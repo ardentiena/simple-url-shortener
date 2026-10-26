@@ -3,6 +3,7 @@ package dev.patrick.urlshortener.component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
@@ -14,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.regex.Pattern;
 
+@Component
 public class TurnstileVerifier {
     private static final Logger LOG = LoggerFactory.getLogger(TurnstileVerifier.class);
     private static final Pattern SUCCES_PATTERN = Pattern.compile("\"success\"\s*:\\s*true");
@@ -44,14 +46,20 @@ public class TurnstileVerifier {
         return enabled;
     }
 
-    public String getSitekey() {
+    public String getSiteKey() {
         return sitekey;
     }
 
     public boolean isTokenValid(String captchaToken, String clientIp) {
-        if(!enabled) return false;
-        if(secretKey.isBlank()) throw unavailable("secret key is not configured.");
-        if(captchaToken.length() >  MAX_TOKEN_LENGTH) return false;
+        if(!enabled) {
+            return true;
+        }
+        if(secretKey.isBlank()) {
+            throw unavailable("secret key is not configured.");
+        }
+        if(captchaToken.length() >  MAX_TOKEN_LENGTH) {
+            return false;
+        }
 
         String formBody = "secret=" + encode(secretKey) + "&response=" + encode(captchaToken) + "&remoteip=" + encode(clientIp);
 
