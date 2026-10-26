@@ -5,36 +5,42 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.io.IOException;
-
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor{
-    private static final int HTTP_STATUS_TOO_MANY_REQUESTS = 429;
-    private static final String RETRY_AFTER_SECONDS = "60";
+    private static final String CAPTCHA_TOKEN_HEADER = "X-Turnstile-Token";
 
     private final RateLimiter rateLimiter;
+    private final TurnstileVerifier turnstileVerifier;
 
-    public RateLimitInterceptor(RateLimiter rateLimiter){
+    public RateLimitInterceptor(RateLimiter rateLimiter, TurnstileVerifier turnstileVerifier) {
         this.rateLimiter = rateLimiter;
+        this.turnstileVerifier = turnstileVerifier;
     }
 
     @Override
-    public boolean preHandle(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Object handler) throws IOException {
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String clientIp = request.getRemoteAddr();
 
-        if(rateLimiter.isAttemptAllowed(clientIp)){
-            return true;
+        switch (rateLimiter.registerAttempt(clientIp)) {
+            case BLOCKED -> throw new RateLimitExceededException();
+            case CAPTCHA_REQUIRED -> requireValidCaptcha(request, clientIp);
+            case ALLOWED -> { }
         }
+        return true;
+    }
 
-        response.setStatus(HTTP_STATUS_TOO_MANY_REQUESTS);
-        response.setHeader("Retry-After", RETRY_AFTER_SECONDS);
-        response.setContentType("application/problem+json");
-        response.getWriter().write(
-                "{\"status\":429,\"title\":\"Too Many Requests\",\"detail\":\"Limit is 10 attempts per minute\"}"
-        );
-        return false;
+    private void requireValidCaptcha(HttpServletRequest request, String clientIp) {
+        if (!turnstileVerifier.isEnabled()) {
+            return;
+        }
+        String captchaToken = request.getHeader(CAPTCHA_TOKEN_HEADER);
+        if (captchaToken == null || captchaToken.isBlank()) {
+            throw new CaptchaRequiredException(
+                    "CAPTCHA verification is required for this request.", turnstileVerifier.getSiteKey());
+        }
+        if (!turnstileVerifier.isTokenValid(captchaToken, clientIp)) {
+            throw new CaptchaRequiredException(
+                    "CAPTCHA verification failed, please try again.", turnstileVerifier.getSiteKey());
+        }
     }
 }
