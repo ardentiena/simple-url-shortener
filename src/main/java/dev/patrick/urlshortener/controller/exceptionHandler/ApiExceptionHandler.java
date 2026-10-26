@@ -33,6 +33,6 @@ public class ApiExceptionHandler {
     public ProblemDetail handleSafeBrowsingUnavailable(SafeBrowsingUnavailableException e){
         return ProblemDetail.forStatusAndDetail(
                 HttpStatus.SERVICE_UNAVAILABLE,
-                "Link safety checkis temporarily unavailable. please try again later.");
+                "Link safety check is temporarily unavailable. please try again later.");
     }
 }
