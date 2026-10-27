@@ -5,30 +5,211 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>URL Shortener</title>
     <style>
-        :root { color-scheme: light dark; }
-        body { font-family: system-ui, sans-serif; max-width: 480px; margin: 4rem auto; padding: 0 1rem; }
-        label { display: block; margin-top: 1rem; font-weight: 600; }
-        input { width: 100%; padding: 0.5rem; margin-top: 0.25rem; box-sizing: border-box; }
-        button { margin-top: 1.5rem; padding: 0.6rem 1.2rem; cursor: pointer; }
-        #captcha-container { margin-top: 1.5rem; }
-        #result-message { margin-top: 1.5rem; word-break: break-all; }
-        #result-message.error { color: #c0392b; }
+        :root {
+            color-scheme: light;
+            --ink: #000000;
+            --page: #ffe14d;
+            --surface: #ffffff;
+            --pink: #ff6fa5;
+            --blue: #7db6ff;
+            --green: #7df29c;
+            --red: #ff6b5e;
+            --border: 3px solid var(--ink);
+            --shadow-large: 8px 8px 0 var(--ink);
+            --shadow-small: 4px 4px 0 var(--ink);
+        }
+
+        [hidden] { display: none; }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 3rem 1rem;
+            background: var(--page);
+            color: var(--ink);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.5;
+        }
+
+        main {
+            max-width: 34rem;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin: 0 0 0.75rem;
+            font-size: clamp(2.25rem, 9vw, 3.5rem);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+        }
+
+        .intro {
+            margin: 0 0 2rem;
+            max-width: 30rem;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        #create-link-form {
+            padding: 1.5rem;
+            background: var(--surface);
+            border: 4px solid var(--ink);
+            box-shadow: var(--shadow-large);
+        }
+
+        label {
+            display: block;
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .field + .field { margin-top: 1.5rem; }
+
+        .hint {
+            display: block;
+            margin-top: 0.15rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 0.75rem 0.85rem;
+            background: var(--surface);
+            color: var(--ink);
+            border: var(--border);
+            border-radius: 0;
+            box-shadow: var(--shadow-small);
+            font: inherit;
+            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        }
+
+        input::placeholder { color: #555555; }
+
+        input:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 3px;
+            background: var(--blue);
+        }
+
+        input:user-invalid { background: var(--red); }
+
+        button {
+            display: block;
+            width: 100%;
+            margin-top: 2rem;
+            padding: 0.9rem 1.2rem;
+            background: var(--pink);
+            color: var(--ink);
+            border: var(--border);
+            border-radius: 0;
+            box-shadow: var(--shadow-small);
+            font: inherit;
+            font-size: 1.1rem;
+            font-weight: 900;
+            cursor: pointer;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 var(--ink);
+        }
+
+        button:active:not(:disabled) {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 var(--ink);
+        }
+
+        button:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 4px;
+        }
+
+        button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+
+        @media (prefers-reduced-motion: no-preference) {
+            button { transition: transform 80ms ease-out, box-shadow 80ms ease-out; }
+        }
+
+        #captcha-container {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--surface);
+            border: var(--border);
+            box-shadow: var(--shadow-small);
+            overflow-x: auto;
+        }
+
+        #result-message {
+            margin: 1.5rem 0 0;
+            padding: 1rem 1.1rem;
+            background: var(--surface);
+            border: var(--border);
+            box-shadow: var(--shadow-small);
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        #result-message:empty { display: none; }
+        #result-message.success { background: var(--green); }
+        #result-message.info { background: var(--blue); }
+        #result-message.error { background: var(--red); }
+
+        #result-message a {
+            display: block;
+            margin-top: 0.35rem;
+            color: var(--ink);
+            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 1.1rem;
+            font-weight: 800;
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+            text-underline-offset: 3px;
+        }
+
+        #result-message a:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 3px;
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 1.5rem 0.75rem; }
+            #create-link-form { padding: 1.1rem; box-shadow: 6px 6px 0 var(--ink); }
+        }
     </style>
 </head>
 <body>
 <main>
-    <h1>URL Shortener</h1>
-    <form id="create-link-form">
-        <label for="alias-input">Alias</label>
-        <input id="alias-input" type="text" required minlength="5" maxlength="50" autocomplete="off">
+    <h1>Pendekkan link panjangmu</h1>
+    <p class="intro">Pilih alias sendiri, tempel URL tujuan, lalu dapatkan link pendek yang langsung bisa dipakai.</p>
 
-        <label for="long-url-input">URL tujuan</label>
-        <input id="long-url-input" type="url" required placeholder="https://example.com/halaman-panjang">
+    <form id="create-link-form">
+        <div class="field">
+            <label for="alias-input">Alias link</label>
+            <span class="hint" id="alias-hint">Minimal 5 karakter: huruf, angka, - dan _</span>
+            <input id="alias-input" type="text" required minlength="5" maxlength="50"
+                   pattern="[0-9A-Za-z_\-]{5,50}" title="Minimal 5 karakter: huruf, angka, - dan _"
+                   autocomplete="off" aria-describedby="alias-hint">
+        </div>
+
+        <div class="field">
+            <label for="long-url-input">URL tujuan</label>
+            <input id="long-url-input" type="url" required placeholder="https://example.com/halaman-panjang">
+        </div>
 
         <button id="submit-button" type="submit">Buat link pendek</button>
     </form>
+
     <div id="captcha-container" hidden></div>
-    <p id="result-message"></p>
+    <p id="result-message" aria-live="polite"></p>
 </main>
 
 <script>
@@ -41,23 +222,29 @@
 
     let turnstileScriptPromise = null;
     let turnstileWidgetId = null;
+    let captchaSiteKey = null;
 
     function showSuccess(shortUrl) {
         const shortUrlLink = document.createElement("a");
         shortUrlLink.href = shortUrl;
         shortUrlLink.textContent = shortUrl;
-        resultMessage.className = "";
-        resultMessage.replaceChildren("Link dibuat: ", shortUrlLink);
+        resultMessage.className = "success";
+        resultMessage.replaceChildren("Link dibuat:", shortUrlLink);
     }
 
     function showInfo(infoText) {
-        resultMessage.className = "";
+        resultMessage.className = "info";
         resultMessage.textContent = infoText;
     }
 
     function showError(errorText) {
         resultMessage.className = "error";
         resultMessage.textContent = errorText;
+    }
+
+    function clearMessage() {
+        resultMessage.className = "";
+        resultMessage.textContent = "";
     }
 
     function loadTurnstileScript() {
@@ -86,6 +273,9 @@
     }
 
     async function requestCaptchaToken(siteKey) {
+        if (!siteKey) {
+            throw new Error("Konfigurasi verifikasi tidak lengkap.");
+        }
         await loadTurnstileScript();
         clearCaptchaWidget();
         captchaContainer.hidden = false;
@@ -95,8 +285,16 @@
                 callback: (captchaToken) => resolve(captchaToken),
                 "error-callback": () => reject(new Error("Verifikasi gagal, coba lagi.")),
                 "expired-callback": () => reject(new Error("Verifikasi kedaluwarsa, kirim ulang.")),
+                "timeout-callback": () => reject(new Error("Verifikasi habis waktu, kirim ulang.")),
             });
         });
+    }
+
+    async function solveCaptcha(siteKey) {
+        showInfo("Selesaikan verifikasi singkat di bawah untuk melanjutkan.");
+        const captchaToken = await requestCaptchaToken(siteKey);
+        clearCaptchaWidget();
+        return captchaToken;
     }
 
     function sendCreateLinkRequest(captchaToken) {
@@ -117,16 +315,16 @@
     createLinkForm.addEventListener("submit", async (submitEvent) => {
         submitEvent.preventDefault();
         submitButton.disabled = true;
-        resultMessage.textContent = "";
+        clearMessage();
 
         try {
-            let apiResponse = await sendCreateLinkRequest(null);
+            let captchaToken = captchaSiteKey ? await solveCaptcha(captchaSiteKey) : null;
+            let apiResponse = await sendCreateLinkRequest(captchaToken);
             let responseBody = await apiResponse.json().catch(() => ({}));
 
-            if (apiResponse.status === 403 && responseBody.captchaRequired) {
-                showInfo("Selesaikan verifikasi singkat di bawah untuk melanjutkan.");
-                const captchaToken = await requestCaptchaToken(responseBody.siteKey);
-                clearCaptchaWidget();
+            if (apiResponse.status === 403 && responseBody.captchaRequired && !captchaToken) {
+                captchaSiteKey = responseBody.siteKey;
+                captchaToken = await solveCaptcha(captchaSiteKey);
                 apiResponse = await sendCreateLinkRequest(captchaToken);
                 responseBody = await apiResponse.json().catch(() => ({}));
             }
