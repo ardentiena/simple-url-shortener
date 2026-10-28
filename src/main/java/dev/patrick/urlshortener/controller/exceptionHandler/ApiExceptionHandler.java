@@ -21,7 +21,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(AliasAlreadyExistException.class)
     public ProblemDetail handleAliasAlreadyExist(AliasAlreadyExistException e){
-        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "Alias sudah digunakan. Silahkan masukkan alias yang berbeda.");
     }
 
     @ExceptionHandler(LinkNotFoundException.class)

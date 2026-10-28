@@ -4,19 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>URL Shortener</title>
+    <script>
+        try {
+            const storedTheme = localStorage.getItem("preferred-theme");
+            if (storedTheme === "dark" || storedTheme === "light") {
+                document.documentElement.dataset.theme = storedTheme;
+            }
+        } catch (storageError) {
+            /* penyimpanan tidak tersedia, ikuti pengaturan sistem */
+        }
+    </script>
     <style>
         :root {
-            color-scheme: light;
+            color-scheme: light dark;
+            --paper: #ffffff;
             --ink: #000000;
-            --page: #ffe14d;
-            --surface: #ffffff;
-            --pink: #ff6fa5;
-            --blue: #7db6ff;
-            --green: #7df29c;
-            --red: #ff6b5e;
-            --border: 3px solid var(--ink);
-            --shadow-large: 8px 8px 0 var(--ink);
-            --shadow-small: 4px 4px 0 var(--ink);
+            --muted: #595959;
+            --red: #d71920;
+            --label-column: 12rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --paper: #000000;
+                --ink: #ffffff;
+                --muted: #a3a3a3;
+                --red: #ff5a5f;
+            }
+        }
+
+        :root[data-theme="light"] { color-scheme: light; }
+
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --paper: #000000;
+            --ink: #ffffff;
+            --muted: #a3a3a3;
+            --red: #ff5a5f;
         }
 
         [hidden] { display: none; }
@@ -25,191 +49,233 @@
 
         body {
             margin: 0;
-            min-height: 100vh;
-            padding: 3rem 1rem;
-            background: var(--page);
+            padding: clamp(1.5rem, 6vw, 4rem) clamp(1rem, 5vw, 3rem);
+            background: var(--paper);
             color: var(--ink);
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            font-family: "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
             line-height: 1.5;
         }
 
         main {
-            max-width: 34rem;
+            max-width: 64rem;
             margin: 0 auto;
         }
 
         h1 {
-            margin: 0 0 0.75rem;
-            font-size: clamp(2.25rem, 9vw, 3.5rem);
-            font-weight: 900;
-            line-height: 1.05;
-            letter-spacing: -0.03em;
+            max-width: 10ch;
+            margin: 0 0 clamp(2rem, 6vw, 4rem);
+            font-size: clamp(2.75rem, 11vw, 5.5rem);
+            font-weight: 700;
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+            text-wrap: balance;
         }
 
         .intro {
-            margin: 0 0 2rem;
-            max-width: 30rem;
-            font-size: 1.1rem;
-            font-weight: 500;
+            max-width: 28rem;
+            margin: 0 0 3rem;
+            font-size: 1.125rem;
         }
 
-        #create-link-form {
-            padding: 1.5rem;
-            background: var(--surface);
-            border: 4px solid var(--ink);
-            box-shadow: var(--shadow-large);
-        }
+        .field-row { margin-top: 2rem; }
 
         label {
             display: block;
-            font-size: 1.05rem;
-            font-weight: 800;
-        }
-
-        .field + .field { margin-top: 1.5rem; }
-
-        .hint {
-            display: block;
-            margin-top: 0.15rem;
-            font-size: 0.9rem;
-            font-weight: 500;
+            margin-bottom: 0.25rem;
+            font-weight: 700;
         }
 
         input {
             display: block;
             width: 100%;
-            margin-top: 0.5rem;
-            padding: 0.75rem 0.85rem;
-            background: var(--surface);
+            padding: 0.6rem 0;
+            background: transparent;
             color: var(--ink);
-            border: var(--border);
+            border: 0;
+            border-bottom: 2px solid var(--ink);
             border-radius: 0;
-            box-shadow: var(--shadow-small);
             font: inherit;
-            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 1.25rem;
+            outline: none;
         }
 
-        input::placeholder { color: #555555; }
+        input::placeholder { color: var(--muted); }
+
+        input:user-invalid { border-bottom-color: var(--red); }
 
         input:focus-visible {
-            outline: 3px solid var(--ink);
-            outline-offset: 3px;
-            background: var(--blue);
+            border-bottom-color: var(--red);
+            box-shadow: 0 2px 0 var(--red);
         }
 
-        input:user-invalid { background: var(--red); }
+        .hint {
+            display: block;
+            margin-top: 0.5rem;
+            color: var(--muted);
+            font-size: 0.875rem;
+        }
 
-        button {
+        #submit-button {
             display: block;
             width: 100%;
-            margin-top: 2rem;
-            padding: 0.9rem 1.2rem;
-            background: var(--pink);
-            color: var(--ink);
-            border: var(--border);
+            margin-top: 2.5rem;
+            padding: 1rem 1.25rem;
+            background: var(--ink);
+            color: var(--paper);
+            border: 0;
             border-radius: 0;
-            box-shadow: var(--shadow-small);
             font: inherit;
-            font-size: 1.1rem;
-            font-weight: 900;
+            font-size: 1.125rem;
+            font-weight: 700;
+            text-align: left;
             cursor: pointer;
         }
 
-        button:hover:not(:disabled) {
-            transform: translate(-2px, -2px);
-            box-shadow: 6px 6px 0 var(--ink);
-        }
+        #submit-button:hover:not(:disabled) { background: var(--red); }
 
-        button:active:not(:disabled) {
-            transform: translate(4px, 4px);
-            box-shadow: 0 0 0 var(--ink);
-        }
-
-        button:focus-visible {
+        #submit-button:focus-visible {
             outline: 3px solid var(--ink);
-            outline-offset: 4px;
+            outline-offset: 3px;
         }
 
-        button:disabled {
-            background: #d9d9d9;
+        #submit-button:disabled {
+            background: var(--muted);
             cursor: not-allowed;
         }
 
         @media (prefers-reduced-motion: no-preference) {
-            button { transition: transform 80ms ease-out, box-shadow 80ms ease-out; }
+            #submit-button { transition: background-color 120ms ease-out; }
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+        }
+
+        #theme-toggle {
+            display: inline-flex;
+            margin-right: -0.6rem;
+            padding: 0.6rem;
+            background: none;
+            color: var(--ink);
+            border: 0;
+            cursor: pointer;
+        }
+
+        #theme-toggle:hover { color: var(--red); }
+
+        #theme-toggle:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 3px;
         }
 
         #captcha-container {
-            margin-top: 1.5rem;
+            margin-top: 2rem;
             padding: 1rem;
-            background: var(--surface);
-            border: var(--border);
-            box-shadow: var(--shadow-small);
+            border: 2px solid var(--ink);
             overflow-x: auto;
         }
 
         #result-message {
-            margin: 1.5rem 0 0;
-            padding: 1rem 1.1rem;
-            background: var(--surface);
-            border: var(--border);
-            box-shadow: var(--shadow-small);
+            margin: 2rem 0 0;
+            padding: 0.25rem 0 0.25rem 1rem;
+            border-left: 4px solid var(--ink);
             font-weight: 700;
             overflow-wrap: anywhere;
         }
 
         #result-message:empty { display: none; }
-        #result-message.success { background: var(--green); }
-        #result-message.info { background: var(--blue); }
-        #result-message.error { background: var(--red); }
+        #result-message.info { border-left-color: var(--muted); }
+        #result-message.error { border-left-color: var(--red); }
 
         #result-message a {
             display: block;
-            margin-top: 0.35rem;
+            margin-top: 0.25rem;
             color: var(--ink);
-            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-            font-size: 1.1rem;
-            font-weight: 800;
+            font-size: 1.5rem;
             text-decoration: underline;
             text-decoration-thickness: 3px;
-            text-underline-offset: 3px;
+            text-underline-offset: 4px;
         }
+
+        #result-message a:hover { color: var(--red); }
 
         #result-message a:focus-visible {
             outline: 3px solid var(--ink);
             outline-offset: 3px;
         }
 
-        @media (max-width: 480px) {
-            body { padding: 1.5rem 0.75rem; }
-            #create-link-form { padding: 1.1rem; box-shadow: 6px 6px 0 var(--ink); }
+        .copy-button {
+            margin-top: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: var(--ink);
+            border: 2px solid var(--ink);
+            border-radius: 0;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .copy-button:hover {
+            background: var(--ink);
+            color: var(--paper);
+        }
+
+        .copy-button:focus-visible {
+            outline: 3px solid var(--ink);
+            outline-offset: 3px;
+        }
+
+        @media (min-width: 48rem) {
+            .row {
+                display: grid;
+                grid-template-columns: var(--label-column) 1fr;
+                column-gap: 2rem;
+            }
+            .row > :first-child:last-child { grid-column: 2; }
+            label { margin-bottom: 0; padding-top: 0.75rem; }
         }
     </style>
 </head>
 <body>
 <main>
+    <div class="topbar">
+        <button id="theme-toggle" type="button" aria-label="Ganti ke mode gelap" title="Ganti ke mode gelap"></button>
+    </div>
+
     <h1>Pendekkan link panjangmu</h1>
-    <p class="intro">Pilih alias sendiri, tempel URL tujuan, lalu dapatkan link pendek yang langsung bisa dipakai.</p>
+
+    <div class="row">
+        <p class="intro">Pilih alias sendiri, tempel URL tujuan, lalu dapatkan link pendek yang langsung bisa dipakai.</p>
+    </div>
 
     <form id="create-link-form">
-        <div class="field">
-            <label for="alias-input">Alias link</label>
-            <span class="hint" id="alias-hint">Minimal 5 karakter: huruf, angka, - dan _</span>
-            <input id="alias-input" type="text" required minlength="5" maxlength="50"
-                   pattern="[0-9A-Za-z_\-]{5,50}" title="Minimal 5 karakter: huruf, angka, - dan _"
-                   autocomplete="off" aria-describedby="alias-hint">
-        </div>
-
-        <div class="field">
+        <div class="row field-row">
             <label for="long-url-input">URL tujuan</label>
-            <input id="long-url-input" type="url" required placeholder="https://example.com/halaman-panjang">
+            <div>
+                <input id="long-url-input" type="url" required placeholder="https://example.com/halaman-panjang">
+            </div>
         </div>
 
-        <button id="submit-button" type="submit">Buat link pendek</button>
+        <div class="row field-row">
+            <label for="alias-input">Alias link</label>
+            <div>
+                <input id="alias-input" type="text" required minlength="5" maxlength="50"
+                       pattern="[0-9A-Za-z_\-]{5,50}" title="Minimal 5 karakter: huruf, angka, - dan _"
+                       autocomplete="off" aria-describedby="alias-hint">
+                <span class="hint" id="alias-hint">Minimal 5 karakter: huruf, angka, - dan _</span>
+            </div>
+        </div>
+
+        <div class="row">
+            <button id="submit-button" type="submit">Buat link pendek</button>
+        </div>
     </form>
 
-    <div id="captcha-container" hidden></div>
-    <p id="result-message" aria-live="polite"></p>
+    <div class="row"><div id="captcha-container" hidden></div></div>
+    <div class="row"><p id="result-message" aria-live="polite"></p></div>
 </main>
 
 <script>
@@ -220,16 +286,75 @@
     const captchaContainer = document.getElementById("captcha-container");
     const resultMessage = document.getElementById("result-message");
 
+    const themeToggleButton = document.getElementById("theme-toggle");
+    const darkSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const themeStorageKey = "preferred-theme";
+
+    function currentTheme() {
+        return document.documentElement.dataset.theme || (darkSchemeQuery.matches ? "dark" : "light");
+    }
+
+    const iconAttributes = 'width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"';
+    const moonIconMarkup = '<svg ' + iconAttributes + '><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+    const sunIconMarkup = '<svg ' + iconAttributes + '><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+
+    function updateThemeToggle() {
+        const isDarkTheme = currentTheme() === "dark";
+        const toggleLabel = isDarkTheme ? "Ganti ke mode terang" : "Ganti ke mode gelap";
+        themeToggleButton.innerHTML = isDarkTheme ? sunIconMarkup : moonIconMarkup;
+        themeToggleButton.setAttribute("aria-label", toggleLabel);
+        themeToggleButton.title = toggleLabel;
+    }
+
+    themeToggleButton.addEventListener("click", () => {
+        const nextTheme = currentTheme() === "dark" ? "light" : "dark";
+        document.documentElement.dataset.theme = nextTheme;
+        try {
+            localStorage.setItem(themeStorageKey, nextTheme);
+        } catch (storageError) {
+            /* penyimpanan tidak tersedia, pilihan berlaku sampai halaman ditutup */
+        }
+        updateThemeToggle();
+    });
+
+    darkSchemeQuery.addEventListener("change", updateThemeToggle);
+    updateThemeToggle();
+
     let turnstileScriptPromise = null;
     let turnstileWidgetId = null;
     let captchaSiteKey = null;
+
+    async function copyShortUrl(shortUrl, copyButton) {
+        let copySucceeded = false;
+        try {
+            await navigator.clipboard.writeText(shortUrl);
+            copySucceeded = true;
+        } catch (clipboardError) {
+            const temporaryTextarea = document.createElement("textarea");
+            temporaryTextarea.value = shortUrl;
+            temporaryTextarea.setAttribute("readonly", "");
+            temporaryTextarea.style.position = "fixed";
+            temporaryTextarea.style.opacity = "0";
+            document.body.appendChild(temporaryTextarea);
+            temporaryTextarea.select();
+            copySucceeded = document.execCommand("copy");
+            temporaryTextarea.remove();
+        }
+        copyButton.textContent = copySucceeded ? "Tersalin" : "Gagal menyalin";
+        setTimeout(() => { copyButton.textContent = "Salin link"; }, 2000);
+    }
 
     function showSuccess(shortUrl) {
         const shortUrlLink = document.createElement("a");
         shortUrlLink.href = shortUrl;
         shortUrlLink.textContent = shortUrl;
+        const copyButton = document.createElement("button");
+        copyButton.type = "button";
+        copyButton.className = "copy-button";
+        copyButton.textContent = "Salin link";
+        copyButton.addEventListener("click", () => copyShortUrl(shortUrl, copyButton));
         resultMessage.className = "success";
-        resultMessage.replaceChildren("Link dibuat:", shortUrlLink);
+        resultMessage.replaceChildren("Link dibuat:", shortUrlLink, copyButton);
     }
 
     function showInfo(infoText) {
@@ -282,6 +407,7 @@
         return new Promise((resolve, reject) => {
             turnstileWidgetId = window.turnstile.render(captchaContainer, {
                 sitekey: siteKey,
+                theme: currentTheme(),
                 callback: (captchaToken) => resolve(captchaToken),
                 "error-callback": () => reject(new Error("Verifikasi gagal, coba lagi.")),
                 "expired-callback": () => reject(new Error("Verifikasi kedaluwarsa, kirim ulang.")),

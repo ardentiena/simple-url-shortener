@@ -5,13 +5,10 @@ import org.springframework.stereotype.Component;
 
 import java.awt.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class RateLimiter {
-    public AttemptDecision attemptDecision;
-
     private static final int MAX_ATTEMPTS_PER_WINDOW = 10;
     private static final int CAPTCHA_REQUIRED_AFTER_ATTEMPTS = 5;
     private static final long WINDOW_DURATION_MILLIS = 60_000;
