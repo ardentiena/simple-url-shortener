@@ -481,6 +481,8 @@
             } else if (apiResponse.status === 429) {
                 const retryAfterSeconds = apiResponse.headers.get("Retry-After") || "60";
                 showError("Terlalu banyak percobaan. Coba lagi dalam " + retryAfterSeconds + " detik.");
+            } else if (apiResponse.status === 403 && responseBody.captchaRequired) {
+                showError("Verifikasi gagal. Kirim ulang dan selesaikan verifikasinya.");
             } else {
                 showError(responseBody.detail || "Gagal membuat link, status " + apiResponse.status);
             }
