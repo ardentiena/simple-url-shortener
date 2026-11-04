@@ -9,13 +9,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -27,12 +27,14 @@ class LinkServiceImplTest {
     LinkCache linkCache;
     @Mock
     private SafeBrowsingClient safeBrowsingClient;
+    @Mock
+    private AliasGenerator aliasGenerator;
 
     private LinkServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new LinkServiceImpl(linkRepository, linkCache, safeBrowsingClient, "localhost");
+        service = new LinkServiceImpl(linkRepository, linkCache, safeBrowsingClient, aliasGenerator, "localhost");
     }
 
     @Test
@@ -121,6 +123,85 @@ class LinkServiceImplTest {
         assertThrows(SafeBrowsingUnavailableException.class,
                 () -> service.createLink("spring", "https://spring.io"));
         verify(linkRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createLink_usesGeneratedAliasWhenAliasIsNull() {
+        when(aliasGenerator.generate()).thenReturn("aB3xY9");
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
+        when(linkRepository.existsByAlias("aB3xY9")).thenReturn(false);
+        when(linkRepository.saveAndFlush(any(Link.class))).thenAnswer(invoc -> invoc.getArgument(0));
+
+        Link result = service.createLink(null, "https://spring.io");
+
+        assertEquals("aB3xY9", result.getAlias());
+    }
+
+    @Test
+    void createLink_usesGeneratedAliasWhenAliasIsBlank() {
+        when(aliasGenerator.generate()).thenReturn("aB3xY9");
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
+        when(linkRepository.existsByAlias("aB3xY9")).thenReturn(false);
+        when(linkRepository.saveAndFlush(any(Link.class))).thenAnswer(invoc -> invoc.getArgument(0));
+
+        Link result = service.createLink("   ", "https://spring.io");
+
+        assertEquals("aB3xY9", result.getAlias());
+    }
+
+    @Test
+    void createLink_triesNextAliasWhenGeneratedAliasExists() {
+        when(aliasGenerator.generate()).thenReturn("taken1", "free22");
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
+        when(linkRepository.existsByAlias("taken1")).thenReturn(true);
+        when(linkRepository.existsByAlias("free22")).thenReturn(false);
+        when(linkRepository.saveAndFlush(any(Link.class))).thenAnswer(invoc -> invoc.getArgument(0));
+
+        Link result = service.createLink(null, "https://spring.io");
+
+        assertEquals("free22", result.getAlias());
+        verify(safeBrowsingClient, times(1)).isUrlSafe("https://spring.io");
+    }
+
+    @Test
+    void createLink_triesNextAliasWhenSaveCollidesWithConcurrentInsert() {
+        when(aliasGenerator.generate()).thenReturn("first1", "second");
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
+        when(linkRepository.existsByAlias(anyString())).thenReturn(false);
+        when(linkRepository.saveAndFlush(any(Link.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate"))
+                .thenAnswer(invoc -> invoc.getArgument(0));
+
+        Link result = service.createLink(null, "https://spring.io");
+
+        assertEquals("second", result.getAlias());
+    }
+
+    @Test
+    void createLink_failsWhenEveryGeneratedAliasIsTaken() {
+        when(aliasGenerator.generate()).thenReturn("taken1");
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
+        when(linkRepository.existsByAlias("taken1")).thenReturn(true);
+
+        assertThrows(IllegalStateException.class,
+                () -> service.createLink(null, "https://spring.io"));
+        verify(aliasGenerator, times(5)).generate();
+        verify(linkRepository, never()).saveAndFlush(any(Link.class));
+    }
+
+    @Test
+    void createLink_keepsLastSaveFailureAsCauseWhenGenerationFails() {
+        when(aliasGenerator.generate()).thenReturn("taken1");
+        when(safeBrowsingClient.isUrlSafe("https://spring.io")).thenReturn(true);
+        when(linkRepository.existsByAlias(anyString())).thenReturn(false);
+        when(linkRepository.saveAndFlush(any(Link.class)))
+                .thenThrow(new DataIntegrityViolationException("constraint violated"));
+
+        IllegalStateException failure = assertThrows(IllegalStateException.class,
+                () -> service.createLink(null, "https://spring.io"));
+
+        assertInstanceOf(DataIntegrityViolationException.class, failure.getCause());
+        verify(linkRepository, times(5)).saveAndFlush(any(Link.class));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package dev.patrick.urlshortener.service;
 
+import dev.patrick.urlshortener.component.AliasGenerator;
 import dev.patrick.urlshortener.component.LinkCache;
 import dev.patrick.urlshortener.component.SafeBrowsingClient;
 import dev.patrick.urlshortener.model.Link;
@@ -22,39 +23,67 @@ public class LinkServiceImpl implements LinkService {
     private static final Pattern ALIAS_PATTERN = Pattern.compile("^[a-zA-Z0-9_-]{5,50}$");
     private static final Set<String> RESERVED = Set.of("health", "admin", "actuator", "static");
     private static final int MAX_URL_LENGTH = 2048;
+    private static final int MAX_GENERATION_ATTEMPTS = 5;
 
     private final LinkRepository linkRepository;
     private final LinkCache linkCache;
     private final String ownHost;
     private final SafeBrowsingClient safeBrowsingClient;
+    private final AliasGenerator aliasGenerator;
 
     public LinkServiceImpl(
             LinkRepository linkRepository,
             LinkCache linkCache,
             SafeBrowsingClient safeBrowsingClient,
+            AliasGenerator aliasGenerator,
             @Value("${app.host}") String ownHost) {
         this.linkRepository = linkRepository;
         this.linkCache = linkCache;
         this.safeBrowsingClient = safeBrowsingClient;
+        this.aliasGenerator = aliasGenerator;
         this.ownHost = ownHost.toLowerCase(Locale.ROOT);
     }
 
     @Override
     public Link createLink(String alias, String longUrl) {
-        validateAlias(alias);
+        boolean aliasWasProvided = alias != null && ! alias.isBlank();
+        if(aliasWasProvided) validateAlias(alias);
         validateLongUrl(longUrl);
 
-        if(linkRepository.existsByAlias(alias)){
+        if(aliasWasProvided && linkRepository.existsByAlias(alias)){
             throw new AliasAlreadyExistException(alias);
         }
         if(!safeBrowsingClient.isUrlSafe(longUrl)){
             throw new InvalidLinkException("This URL is flagged as unsafe by Google Safe Browsing.");
         }
+        if(aliasWasProvided){
+            return saveWithChosenAlias(alias, longUrl);
+        }
+        return saveWithGeneratedAlias(longUrl);
+    }
+
+    private Link saveWithChosenAlias(String alias, String longUrl) {
         try {
             return linkRepository.saveAndFlush(new Link(alias, longUrl));
         }catch (DataIntegrityViolationException duplicateAlias){
             throw new AliasAlreadyExistException(alias);
         }
+    }
+
+    private Link saveWithGeneratedAlias(String longUrl) {
+        DataIntegrityViolationException lastSavedFailure = null;
+        for(int attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++){
+            String candidateAlias = aliasGenerator.generate();
+            if(RESERVED.contains(candidateAlias) || linkRepository.existsByAlias(candidateAlias)){
+                continue;
+            }
+            try{
+                return linkRepository.saveAndFlush(new Link(candidateAlias, longUrl));
+            }catch (DataIntegrityViolationException saveFailure){
+                lastSavedFailure = saveFailure;
+            }
+        }
+        throw new IllegalStateException("Could not generate a unique alias.",  lastSavedFailure);
     }
 
     @Override

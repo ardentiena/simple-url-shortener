@@ -267,7 +267,7 @@
 
     <section class="headline">
         <h1>Pendekkan link panjangmu</h1>
-        <p class="intro">Pilih alias sendiri, tempel URL tujuan, lalu dapatkan link pendek yang langsung bisa dipakai.</p>
+        <p class="intro">Tempel URL tujuan, pilih alias sendiri jika mau, lalu dapatkan link pendek yang langsung bisa dipakai.</p>
     </section>
 
     <section class="workspace">
@@ -280,12 +280,12 @@
             </div>
 
             <div class="row field-row">
-                <label for="alias-input">Alias link</label>
+                <label for="alias-input">Alias link (opsional)</label>
                 <div>
-                    <input id="alias-input" type="text" required minlength="5" maxlength="50"
+                    <input id="alias-input" type="text" minlength="5" maxlength="50"
                            pattern="[0-9A-Za-z_\-]{5,50}" title="Minimal 5 karakter: huruf, angka, - dan _"
                            autocomplete="off" aria-describedby="alias-hint">
-                    <span class="hint" id="alias-hint">Minimal 5 karakter: huruf, angka, - dan _</span>
+                    <span class="hint" id="alias-hint">Kosongkan untuk alias acak. Jika diisi: 5 sampai 50 karakter, huruf, angka, - dan _</span>
                 </div>
             </div>
 
