@@ -106,10 +106,10 @@ public class LinkServiceImpl implements LinkService {
     @Override
     public void validateAlias(String alias) {
         if(alias == null || !ALIAS_PATTERN.matcher(alias).matches()){
-            throw new InvalidLinkException("Alias must be 5-50 characters of 0-9, a-z, A-Z, - or _");
+            throw new InvalidAliasException("Alias must be 5-50 characters of 0-9, a-z, A-Z, - or _");
         }
         if(RESERVED.contains(alias)){
-            throw new InvalidLinkException("Alias is reserved.");
+            throw new InvalidAliasException("Alias is reserved.");
         }
     }
 
