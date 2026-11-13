@@ -132,7 +132,8 @@ public class LinkServiceImpl implements LinkService {
         if(host == null){
             throw new InvalidLinkException("URl has no host.");
         }
-        if(host.equalsIgnoreCase(ownHost)){
+        String requestedHost = host.endsWith(".") ? host.substring(0, host.length() - 1) : host;
+        if(requestedHost.equalsIgnoreCase(ownHost)){
             throw new InvalidLinkException("URLs pointing to this service are not allowed.");
         }
     }
